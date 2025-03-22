@@ -22,6 +22,24 @@ try:
 except Exception as e:
     print(f"Failed to connect to MongoDB: {e}")
 
+from pymongo import MongoClient
+
+def insert_folder_mapping(cluster_id: int, folder_id: str):
+    collection = db["folders"]
+
+    # Define the document
+    document = {
+        "clusterId": cluster_id,
+        "folderId": folder_id
+    }
+
+    # Insert into the collection
+    result = collection.insert_one(document)
+    
+    print(f"Inserted document ID: {result.inserted_id}")
+
+
+
 def fetch_all_embeddings():
     try:
         # Connect to the collection
