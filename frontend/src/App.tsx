@@ -73,7 +73,7 @@ export default function FileUploadPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: fileContent }),
+        body: JSON.stringify({ text: fileContent, file_name: fileName }),
       })
 
       if (response.ok) {

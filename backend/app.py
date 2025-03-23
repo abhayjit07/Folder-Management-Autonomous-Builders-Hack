@@ -5,6 +5,7 @@ from model import callMe
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import numpy as np
+from drive import create_subfolder, upload_file_to_drive
 
 app = Flask(__name__)
 CORS(app)
@@ -24,13 +25,15 @@ except Exception as e:
 
 from pymongo import MongoClient
 
-def insert_folder_mapping(cluster_id: int, folder_id: str):
+def insert_folder_mapping(cluster_id: int, folder_id: str, folder_name: str):
+    # Connect to the collection
     collection = db["folders"]
 
     # Define the document
     document = {
-        "clusterId": cluster_id,
-        "folderId": folder_id
+        "clusterId": int(cluster_id),
+        "folderId": folder_id,
+        "folderName": folder_name
     }
 
     # Insert into the collection
@@ -38,7 +41,13 @@ def insert_folder_mapping(cluster_id: int, folder_id: str):
     
     print(f"Inserted document ID: {result.inserted_id}")
 
+def fetch_folder_mapping(cluster_id: int):
+    collection = db["folders"]
 
+    result = collection.find_one({"clusterId": int(cluster_id)})  # Corrected key
+    if result is None:
+        print(f"No document found for clusterId: {cluster_id}")
+    return result
 
 def fetch_all_embeddings():
     try:
@@ -68,6 +77,13 @@ def upload_file():
         file_content = data['text']
         print("Received text:", file_content)
 
+        # save file in local
+        file_tmp_name = "tmp_file.txt"
+        with open(file_tmp_name, "w") as f:
+            f.write(file_content)
+
+        
+
         file_name = data['file_name']
         print("Received file name:", file_name)
 
@@ -93,8 +109,20 @@ def upload_file():
 
 
         # pass labels to agent here
+        print("Labels: ", labels)
+        cluster_id = labels[-1]
+        res = fetch_folder_mapping(cluster_id)
+        folder_id = res.get("folderId") if res else None
+        print("Folder ID:", folder_id)
+        actual_folder_id = folder_id 
+        if folder_id is None:
+            folder_id = create_subfolder(f"Cluster-{cluster_id}")
+            actual_folder_id = folder_id
+            insert_folder_mapping(cluster_id, folder_id, f"Cluster-{cluster_id}")
 
-
+        # Upload file to Google Drive
+        file_id = upload_file_to_drive(file_name, file_content, actual_folder_id)
+        print("File uploaded with ID:", file_id)
 
         return jsonify({"message": "Data processed and saved"}), 200
 
